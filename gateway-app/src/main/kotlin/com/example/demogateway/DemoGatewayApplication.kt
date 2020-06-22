@@ -19,12 +19,26 @@ fun main(args: Array<String>) {
 class Router {
 
     @Bean
-    fun myRoutes(builder: RouteLocatorBuilder): RouteLocator? {
+    fun myRoutes(builder: RouteLocatorBuilder): RouteLocator {
         return builder.routes()
+                .route {
+                    it.path("/bin")
+                            .filters { f ->
+                                f.rewritePath("/bin", "/get")
+                                f.modifyResponseBody<String, String> {
+
+                                }
+                            }
+                            .uri("https://httpbin.org")
+                }
                 .route {
                     it.path("/orders")
                             .filters { f: GatewayFilterSpec -> f.addRequestHeader("Hello", "World") }
                             .uri("http://localhost:8083")
+                }
+                .route {
+                    it.path("/users")
+                            .uri("http://localhost:8082")
                 }
                 .build()
     }

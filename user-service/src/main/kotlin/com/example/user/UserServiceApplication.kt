@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.server.body
 import org.springframework.web.reactive.function.server.bodyToServerSentEvents
 import org.springframework.web.reactive.function.server.router
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.LocalDate
 
@@ -29,6 +30,7 @@ class RouterConfig{
     fun applicationRoutes(userHandler: UserHandler) = router {
         accept(MediaType.APPLICATION_JSON).nest {
             GET("/users", userHandler::findAll)
+            POST("/users", userHandler::save)
         }
 
         accept(MediaType.TEXT_EVENT_STREAM).nest {
@@ -41,20 +43,31 @@ class RouterConfig{
 @Component
 class UserHandler {
 
-    private val users = Flux.just(
+    private val users = mutableListOf(
             User("João", "de João e Maria", LocalDate.now().minusDays(1)),
             User("Maria", "de João e Maria", LocalDate.now().minusDays(10)),
-            User("João", "do pé de feijão", LocalDate.now().minusDays(100)))
+            User("João", "do pé de feijão", LocalDate.now().minusDays(100))
+    )
 
-    private val userStream = Flux
-            .zip(Flux.interval(Duration.ofMillis(100)), users.repeat())
-            .map { it.t2 }
+    fun save(request: ServerRequest): Mono<ServerResponse> {
+        TODO("mensagem de erro")
+    }
 
-    fun findAll(req: ServerRequest) =
-            ServerResponse.ok().body(users)
+//        request.bodyToMono(User::class.java)
+//                .doOnNext { user -> users.add(user) }
+//                .flatMap { ServerResponse.created(request.uri()).body(Mono.just(it)) }
 
-    fun stream(req: ServerRequest) =
-            ServerResponse.ok().bodyToServerSentEvents(userStream)
+
+
+
+    fun findAll(request: ServerRequest) =
+            ServerResponse.ok()
+                    .body(Flux.fromIterable(users))
+
+    fun stream(request: ServerRequest) =
+            ServerResponse.ok().bodyToServerSentEvents(
+                    Flux.zip(Flux.interval(Duration.ofMillis(100)), Flux.fromIterable(users).repeat()).map { it.t2 }
+            )
 
 }
 
